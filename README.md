@@ -1,2 +1,2 @@
-# metno-weather-reporter
-service to get weather data from MET Norway api and forward to database
+# go-weather-reporter
+service to query weather data APIs and report to databases
