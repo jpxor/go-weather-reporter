@@ -7,6 +7,7 @@ import (
 
 	"github.com/jpxor/go-weather-reporter/integrations/weather"
 	"github.com/jpxor/go-weather-reporter/integrations/weather/metno"
+	"github.com/jpxor/go-weather-reporter/pkg/httphelper"
 )
 
 func Run(config Config, logr *log.Logger) {
@@ -22,7 +23,7 @@ func Run(config Config, logr *log.Logger) {
 				Altitude:  71,
 			})
 			if err != nil {
-				if err == weather.ClientErrorFatal {
+				if err == httphelper.ClientErrorFatal {
 					os.Exit(1)
 				}
 			} else {

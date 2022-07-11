@@ -9,6 +9,7 @@ import (
 	"time"
 
 	. "github.com/jpxor/go-weather-reporter/integrations/weather"
+	. "github.com/jpxor/go-weather-reporter/pkg/httphelper"
 )
 
 type CachedResult struct {
