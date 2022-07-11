@@ -280,8 +280,8 @@ func (w *OpenWeatherService) setCachedResult(lat, lon float64, expiresHdr, lastM
 
 func (w *OpenWeatherService) selfThrottle() {
 	sinceLastReq := time.Now().Sub(w.previousRequest)
-	if sinceLastReq < 50*time.Millisecond {
-		time.Sleep(50*time.Millisecond - sinceLastReq)
+	if sinceLastReq < 1*time.Second {
+		time.Sleep(1*time.Second - sinceLastReq)
 	}
 }
 
