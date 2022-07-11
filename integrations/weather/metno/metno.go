@@ -185,9 +185,6 @@ func (w *MetNoService) locationForecast(client *http.Client, lat, lon float64, a
 		w.logr.Println("caching result | expires header:", expiresHdr)
 		w.setCachedResult(lat, lon, alt, expiresHdr, lastModHdr, &result)
 
-		// check Last-Modified
-		// lastModHdr := res.Header.Get("Last-Modified") ?? what to do with this?
-
 		return &result, nil
 	}
 
