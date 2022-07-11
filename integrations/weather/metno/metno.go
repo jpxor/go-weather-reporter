@@ -1,4 +1,4 @@
-package weather
+package metno
 
 import (
 	"encoding/json"
@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	. "github.com/jpxor/go-weather-reporter/integrations/weather"
 )
 
 type CachedResult struct {

@@ -6,13 +6,14 @@ import (
 	"time"
 
 	"github.com/jpxor/go-weather-reporter/integrations/weather"
+	"github.com/jpxor/go-weather-reporter/integrations/weather/metno"
 )
 
 func Run(config Config, logr *log.Logger) {
 
 	if config.Start {
 		logr.Println("started")
-		config.WeatherService = weather.NewMetnoWeatherService(logr)
+		config.WeatherService = metno.NewMetnoWeatherService(logr)
 
 		for {
 			result, err := config.WeatherService.Query(weather.Location{
