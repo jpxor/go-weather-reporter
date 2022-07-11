@@ -54,13 +54,35 @@ func (w *MetNoService) Query(loc Location) (*Weather, error) {
 			Altitude:  forcast.Geometry.Coordinates[2],
 		},
 		Measurements: []Measurement{
-			{Temperature, instants.AirTemperature, Celcius},
-			{RelHumidity, instants.RelHumidity, Percent},
-			{Pressure, instants.AirPressure, HectoPascal},
-			{Precipitation, data.Next1Hours.Details.Precipitation, Millimeters},
-			{WindSpeed, instants.WindSpeed, MetersPerSecond},
-			{CloudCover, instants.CloudArea, Percent},
-			{"wind_direction", instants.WindFromDirection, Degrees},
+			{
+				Name:  Temperature,
+				Value: instants.AirTemperature,
+				Unit:  Celcius,
+			}, {
+				Name:  RelHumidity,
+				Value: instants.RelHumidity,
+				Unit:  Percent,
+			}, {
+				Name:  Pressure,
+				Value: instants.AirPressure,
+				Unit:  HectoPascal,
+			}, {
+				Name:  Precipitation,
+				Value: data.Next1Hours.Details.Precipitation,
+				Unit:  Millimeters,
+			}, {
+				Name:  WindSpeed,
+				Value: instants.WindSpeed,
+				Unit:  MetersPerSecond,
+			}, {
+				Name:  CloudCover,
+				Value: instants.CloudArea,
+				Unit:  Percent,
+			}, {
+				Name:  "wind_direction",
+				Value: instants.WindFromDirection,
+				Unit:  Degrees,
+			},
 		},
 	}
 	return &ret, nil
