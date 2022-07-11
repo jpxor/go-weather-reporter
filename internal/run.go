@@ -16,9 +16,9 @@ func Run(config Config, logr *log.Logger) {
 
 		for {
 			result, err := config.WeatherService.Query(weather.Location{
-				Latitude:  45.357437,
-				Longitude: -75.805931,
-				Altitude:  70,
+				Latitude:  45.42178,
+				Longitude: -75.69119,
+				Altitude:  71,
 			})
 			if err != nil {
 				if err == weather.ClientErrorFatal {
@@ -27,7 +27,7 @@ func Run(config Config, logr *log.Logger) {
 			} else {
 				logr.Println(result)
 			}
-			time.Sleep(time.Second)
+			time.Sleep(config.QueryInterval)
 		}
 
 	}
