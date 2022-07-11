@@ -114,10 +114,6 @@ func (w *OpenWeatherService) currentWeatherQuery(client *http.Client, lat, lon f
 		w.logr.Println("info: openwweather using cached result (not yet expired)")
 		return cacheHit, nil
 	}
-
-	// openweathermap.org free-tier allows 60 calls per minute,
-	// so we self-throttle by enforcing at least 1 second interval
-	// between requests
 	w.selfThrottle()
 
 	// NOTE: The endpoint for paid subscription plans is different
@@ -279,6 +275,9 @@ func (w *OpenWeatherService) setCachedResult(lat, lon float64, expiresHdr, lastM
 }
 
 func (w *OpenWeatherService) selfThrottle() {
+	// openweathermap.org free-tier allows 60 calls per minute,
+	// so we self-throttle by enforcing at least 1 second interval
+	// between requests
 	sinceLastReq := time.Now().Sub(w.previousRequest)
 	if sinceLastReq < 1*time.Second {
 		time.Sleep(1*time.Second - sinceLastReq)
