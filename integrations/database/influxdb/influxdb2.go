@@ -26,6 +26,10 @@ import (
 type Influxdb2Reporter struct {
 }
 
-func (r *Influxdb2Reporter) Report(batch []weather.Weather) error {
+func NewReporter() *Influxdb2Reporter {
+	return &Influxdb2Reporter{}
+}
+
+func (r *Influxdb2Reporter) Report(batch []*weather.Weather) error {
 	return fmt.Errorf("not implemented")
 }
