@@ -45,7 +45,7 @@ type MetNoService struct {
 	previousRequest time.Time
 }
 
-func NewMetnoWeatherService(logr *log.Logger) *MetNoService {
+func NewWeatherService(logr *log.Logger) *MetNoService {
 	client := SimpleClient(10 * time.Second)
 	return &MetNoService{
 		client:          client,

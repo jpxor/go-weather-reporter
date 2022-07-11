@@ -48,7 +48,7 @@ type OpenWeatherService struct {
 	Language        string
 }
 
-func NewOpenWeatherService(apiKey, lang string, logr *log.Logger) *OpenWeatherService {
+func NewWeatherService(apiKey, lang string, logr *log.Logger) *OpenWeatherService {
 	client := SimpleClient(10 * time.Second)
 	return &OpenWeatherService{
 		client:          client,
