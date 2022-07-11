@@ -211,7 +211,7 @@ func (w *MetNoService) locationForecast(client *http.Client, lat, lon float64, a
 		return &result, nil
 	}
 
-	return nil, fmt.Errorf("metno nnknown error")
+	return nil, fmt.Errorf("metno unknown error")
 }
 
 func cacheKey(lat, lon float64, alt int) string {
