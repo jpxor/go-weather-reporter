@@ -49,8 +49,8 @@ func parseArgs(logr *log.Logger) internal.Config {
 	// the following flags overwrite values set in the config file,
 	// the default value must be invalid so we know when to NOT overwrite the config
 	// the real default values are set above
-	flag.IntVar(&opts.QueryInterval, "interval", 0, "Query interval in seconds")
-	flag.IntVar(&opts.ReportInterval, "report_interval", 0, "Set report interval in seconds if it should differ from the query interval")
+	flag.IntVar(&opts.QueryInterval, "interval", 0, "Query interval in minutes")
+	flag.IntVar(&opts.ReportInterval, "report_interval", 0, "Set report interval in minutes if it should differ from the query interval")
 
 	flag.Parse()
 
@@ -62,7 +62,7 @@ func parseArgs(logr *log.Logger) internal.Config {
 	// check for valid interval,
 	// then check if default value is needed
 	if opts.QueryInterval > 0 {
-		config.QueryInterval = time.Duration(opts.QueryInterval)
+		config.QueryInterval = time.Minute * time.Duration(opts.QueryInterval)
 	} else if config.QueryInterval == 0 {
 		config.QueryInterval = DEFAULT_INTERVAL
 	}
@@ -70,7 +70,7 @@ func parseArgs(logr *log.Logger) internal.Config {
 	// check for valid interval,
 	// then check if default value is needed
 	if opts.ReportInterval > 0 {
-		config.ReportInterval = time.Duration(opts.ReportInterval)
+		config.ReportInterval = time.Minute * time.Duration(opts.ReportInterval)
 	} else if config.ReportInterval == 0 {
 		config.ReportInterval = config.QueryInterval
 	}
