@@ -14,36 +14,26 @@
 //     You should have received a copy of the GNU General Public License
 //     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package main
+package integrations
 
-import (
-	"flag"
-	"log"
+import "time"
 
-	"github.com/jpxor/go-weather-reporter/internal"
-)
-
-func main() {
-	logr := log.New(log.Writer(), "go-data-logger: ", log.LstdFlags|log.Lmsgprefix)
-	config, opts := parseArgs(logr)
-	internal.Run(config, opts, logr)
+type Field struct {
+	Value interface{}
+	Unit  string
 }
 
-func parseArgs(logr *log.Logger) (internal.Config, internal.Opts) {
-	opts := internal.Opts{}
+type Data struct {
+	Time   time.Time
+	Fields map[string]Field
+}
 
-	flag.StringVar(&opts.ConfigDir, "cdir", "./config/", "Set path to a directory containing config files")
-	flag.BoolVar(&opts.Once, "once", false, "Execute each query once, then exit")
-	flag.Parse()
+type SourceInterface interface {
+	Init(config map[string]interface{}) error
+	Query() (Data, error)
+}
 
-	logr.Println("parsing config files")
-	parser := internal.NewConfigParser(logr)
-	config, err := parser.ParseConfigFiles(opts.ConfigDir)
-
-	if err != nil {
-		logr.Println(err)
-		logr.Fatalln("faild to parse config files")
-	}
-
-	return config, opts
+type DestinationInterface interface {
+	Init(configInfo map[string]interface{}) error
+	Report(Data) error
 }
