@@ -52,46 +52,36 @@ type OpenWeatherService struct {
 	lon             float64
 }
 
-func getString(val interface{}) (string, bool) {
-	str, ok := val.(string)
-	return str, ok
-}
-
-func getFloat(val interface{}) (float64, bool) {
-	f, ok := val.(float64)
-	return f, ok
-}
-
 func (w *OpenWeatherService) Init(args map[string]interface{}) error {
 	var ok bool
 
 	w.logr = log.New(log.Writer(), "open_weather_map: ", log.LstdFlags|log.Lmsgprefix)
 
-	w.apikey, ok = getString(args["apikey"])
+	w.apikey, ok = args["apikey"].(string)
 	if !ok {
 		w.logr.Println("missing required 'apikey'")
 		return fmt.Errorf("configuration missing required field")
 	}
 
-	w.lat, ok = getFloat(args["latitude"])
+	w.lat, ok = args["latitude"].(float64)
 	if !ok {
 		w.logr.Println("missing required 'latitude'")
 		return fmt.Errorf("configuration missing required field")
 	}
 
-	w.lon, ok = getFloat(args["longitude"])
+	w.lon, ok = args["longitude"].(float64)
 	if !ok {
 		w.logr.Println("missing required 'longitude'")
 		return fmt.Errorf("configuration missing required field")
 	}
 
-	w.lang, ok = getString(args["language"])
+	w.lang, ok = args["language"].(string)
 	if !ok {
-		w.logr.Println("missing optional 'lang', using default: 'en'")
+		w.logr.Println("missing optional 'language', using default: 'en'")
 		w.lang = "en"
 	}
 
-	w.units, ok = getString(args["units"])
+	w.units, ok = args["units"].(string)
 	if !ok {
 		w.logr.Println("missing optional 'units', using default: 'metric'")
 		w.units = "metric"

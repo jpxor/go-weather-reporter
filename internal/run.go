@@ -27,11 +27,6 @@ import (
 	"github.com/jpxor/go-weather-reporter/integrations/weather/openweathermap"
 )
 
-func getString(val interface{}) (string, bool) {
-	str, ok := val.(string)
-	return str, ok
-}
-
 func getDuration(str, suffix string, scale time.Duration) (time.Duration, bool) {
 	if strings.HasSuffix(str, suffix) {
 		str = strings.TrimSuffix(str, suffix)
@@ -89,7 +84,7 @@ func Run(config Config, opts Opts, logr *log.Logger) {
 	for _, service := range config {
 		logr.Println("Starting service:", service.Name)
 
-		sourceName, ok := getString(service.Source["name"])
+		sourceName, ok := service.Source["name"].(string)
 		if !ok {
 			logr.Fatalln("service is missing a name, config:", service.ConfPath)
 		}
