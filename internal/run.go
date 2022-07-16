@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/jpxor/go-weather-reporter/integrations"
+	"github.com/jpxor/go-weather-reporter/integrations/database/influxdb"
 	"github.com/jpxor/go-weather-reporter/integrations/weather/openweathermap"
 )
 
@@ -69,8 +70,16 @@ func getPollInterval(val interface{}) (time.Duration, bool) {
 
 func getSourceIntegration(name string) integrations.SourceInterface {
 	switch name {
-	case "openweathermap":
+	case openweathermap.Name:
 		return &openweathermap.OpenWeatherService{}
+	}
+	return nil
+}
+
+func getDestinationIntegration(name string) integrations.DestinationInterface {
+	switch name {
+	case influxdb.Name:
+		return &influxdb.Influxdb2Reporter{}
 	}
 	return nil
 }
@@ -81,27 +90,67 @@ func StartService(interval time.Duration, source integrations.SourceInterface, d
 
 func Run(config Config, opts Opts, logr *log.Logger) {
 
+	// for each configured service
 	for _, service := range config {
 		logr.Println("Starting service:", service.Name)
 
+		// initialize data source
 		sourceName, ok := service.Source["name"].(string)
 		if !ok {
-			logr.Fatalln("service is missing a name, config:", service.ConfPath)
+			logr.Fatalln("source is missing a name, config:", service.ConfPath)
 		}
 		poll_interval, ok := getPollInterval(service.Source["poll_interval"])
 		if !ok {
-			logr.Fatalln("failed to parse poll_interval, config:", service.ConfPath)
+			logr.Fatalln("failed to parse source poll_interval, config:", service.ConfPath)
 		}
 		source := getSourceIntegration(sourceName)
 		if source == nil {
 			logr.Fatalln("no source integration with name:", sourceName)
 		}
-		source.Init(service.Source)
+		err := source.Init(service.Source)
+		if err != nil {
+			logr.Fatalln("failed to initialize data source:", sourceName)
+		}
 
+		// initialize data destinations
 		var dests []integrations.DestinationInterface
+		for _, destConfig := range service.Destinations {
+			destName, ok := destConfig["name"].(string)
+			if !ok {
+				logr.Fatalln("destination is missing a name, config:", service.ConfPath)
+			}
+			fieldsTmp, ok := destConfig["fields"].([]interface{})
+			if !ok {
+				logr.Fatalln("destination is missing fields, config:", service.ConfPath)
+			}
+			fields := convertToStringSlice(fieldsTmp)
+			dest := getDestinationIntegration(destName)
+			if dest == nil {
+				logr.Fatalln("no destination integration with name:", destName)
+			}
+			err := dest.Init(fields, destConfig)
+			if err != nil {
+				logr.Fatalln("failed to initialize destination:", destName)
+			}
+			dests = append(dests, dest)
+		}
+
 		go StartService(poll_interval, source, dests)
 
 		// TEMP
 		time.Sleep(time.Minute)
 	}
+}
+
+func convertToStringSlice(in []interface{}) []string {
+	out := make([]string, 0, len(in))
+	for _, i := range in {
+		str, ok := i.(string)
+		if !ok {
+			fmt.Println("failed to include field, not a string:", i)
+		} else {
+			out = append(out, str)
+		}
+	}
+	return out
 }

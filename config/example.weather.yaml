@@ -29,16 +29,16 @@
       tags:
          location: home
     
-    - # report to mqtt broker
-      name: mqtt
-      fields: [ temperature, relative_humidity, cloud_cover, summary ]
+    # - # report to mqtt broker
+    #   name: mqtt
+    #   fields: [ temperature, relative_humidity, cloud_cover, summary ]
 
-      # mqtt specific config:
-      user: ${MQTT_USER}
-      pass: ${MQTT_PASS}
-      persist: false
-      host: http://192.168.50.2:4568
-      topic: home/weather/current/${field}
-      will:
-         topic: home/weather/current/status
-         value: offline
+    #   # mqtt specific config:
+    #   user: ${MQTT_USER}
+    #   pass: ${MQTT_PASS}
+    #   persist: false
+    #   host: http://192.168.50.2:4568
+    #   topic: home/weather/current/${field}
+    #   will:
+    #      topic: home/weather/current/status
+    #      value: offline

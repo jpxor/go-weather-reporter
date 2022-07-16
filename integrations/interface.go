@@ -34,6 +34,6 @@ type SourceInterface interface {
 }
 
 type DestinationInterface interface {
-	Init(configInfo map[string]interface{}) error
+	Init(fields []string, config map[string]interface{}) error
 	Report(Data) error
 }

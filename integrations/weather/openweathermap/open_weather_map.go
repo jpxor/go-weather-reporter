@@ -34,6 +34,8 @@ import (
 	. "github.com/jpxor/go-weather-reporter/pkg/httphelper"
 )
 
+var Name = "openweathermap"
+
 type CachedResult struct {
 	Result       *OpenWeatherResponse
 	Expires      time.Time
@@ -55,7 +57,7 @@ type OpenWeatherService struct {
 func (w *OpenWeatherService) Init(args map[string]interface{}) error {
 	var ok bool
 
-	w.logr = log.New(log.Writer(), "open_weather_map: ", log.LstdFlags|log.Lmsgprefix)
+	w.logr = log.New(log.Writer(), "open_weather_map source: ", log.LstdFlags|log.Lmsgprefix)
 
 	w.apikey, ok = args["apikey"].(string)
 	if !ok {
