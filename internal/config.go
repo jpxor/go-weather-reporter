@@ -100,17 +100,31 @@ func EnvVarSubstitution(in []byte) []byte {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	out := string(in)
-	matches := rexp.FindAllString(out, -1)
-	for _, match := range matches {
-		match = strings.TrimPrefix(match, "${")
-		match = strings.TrimSuffix(match, "}")
+	lines := strings.Split(string(in), "\n")
+	for i, line := range lines {
 
-		sub := os.Getenv(match)
-		if sub == "" {
-			log.Fatalln("error: missing environment variable: ", match)
+		// # ignored empty and commented lines
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
 		}
-		out = strings.ReplaceAll(out, match, sub)
+		matches := rexp.FindAllString(line, -1)
+		for _, match := range matches {
+
+			// special value, must not be replaced
+			if match == "${field}" {
+				continue
+			}
+			match = strings.TrimPrefix(match, "${")
+			match = strings.TrimSuffix(match, "}")
+
+			sub := os.Getenv(match)
+			if sub == "" {
+				log.Fatalln("error: missing environment variable: ", match)
+			}
+			line = strings.ReplaceAll(line, match, sub)
+		}
+		lines[i] = line
 	}
-	return []byte(out)
+	return []byte(strings.Join(lines, "\n"))
 }
