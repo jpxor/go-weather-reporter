@@ -133,6 +133,18 @@ func (w *OpenWeatherService) Query() (integrations.Data, error) {
 				Value: current.Clouds.All,
 				Unit:  Percent,
 			},
+			"weather": {
+				Value: current.Weather[0].Main,
+				Unit:  Text,
+			},
+			"sunrise": {
+				Value: time.Unix(current.Sys.Sunrise, 0),
+				Unit:  "Time",
+			},
+			"sunset": {
+				Value: time.Unix(current.Sys.Sunset, 0),
+				Unit:  "Time",
+			},
 		},
 	}, nil
 }
@@ -349,8 +361,8 @@ type OpenWeatherResponse struct {
 		Type    int    `json:"type"`
 		ID      int    `json:"id"`
 		Country string `json:"country"`
-		Sunrise int    `json:"sunrise"`
-		Sunset  int    `json:"sunset"`
+		Sunrise int64  `json:"sunrise"`
+		Sunset  int64  `json:"sunset"`
 	} `json:"sys"`
 	Timezone int    `json:"timezone"`
 	ID       int    `json:"id"`
