@@ -20,6 +20,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -66,6 +68,7 @@ func (c *ConfigParser) ParseConfigFiles(dir string) (Config, error) {
 				if err != nil {
 					return conf, err
 				}
+				content = EnvVarSubstitution(content)
 				c, err := ParseYamlConfig(content)
 				if err != nil {
 					return conf, err
@@ -90,4 +93,24 @@ func ParseYamlConfig(src []byte) (Config, error) {
 		return conf, err
 	}
 	return conf, nil
+}
+
+func EnvVarSubstitution(in []byte) []byte {
+	rexp, err := regexp.Compile(`\${\w*}`)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	out := string(in)
+	matches := rexp.FindAllString(out, -1)
+	for _, match := range matches {
+		match = strings.TrimPrefix(match, "${")
+		match = strings.TrimSuffix(match, "}")
+
+		sub := os.Getenv(match)
+		if sub == "" {
+			log.Fatalln("error: missing environment variable: ", match)
+		}
+		out = strings.ReplaceAll(out, match, sub)
+	}
+	return []byte(out)
 }
