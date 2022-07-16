@@ -21,6 +21,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jpxor/go-weather-reporter/integrations"
@@ -84,11 +85,44 @@ func getDestinationIntegration(name string) integrations.DestinationInterface {
 	return nil
 }
 
-func StartService(interval time.Duration, source integrations.SourceInterface, dests []integrations.DestinationInterface) {
-	fmt.Println("started!")
+type ServiceStart struct {
+	logr     *log.Logger
+	wg       *sync.WaitGroup
+	interval time.Duration
+	source   integrations.SourceInterface
+	dests    []integrations.DestinationInterface
+	once     bool
+}
+
+func StartService(config ServiceStart) {
+	defer config.wg.Done()
+
+	nextrun := time.Now()
+	for {
+		if nextrun.Before(time.Now()) {
+			data, err := config.source.Query()
+			if err != nil {
+				config.logr.Println(err)
+			} else {
+				for _, dest := range config.dests {
+					err := dest.Report(data)
+					if err != nil {
+						config.logr.Println(err)
+					}
+				}
+			}
+			nextrun = nextrun.Add(config.interval)
+		}
+		if config.once {
+			break
+		}
+		time.Sleep(nextrun.Sub(time.Now()))
+	}
 }
 
 func Run(config Config, opts Opts, logr *log.Logger) {
+
+	var wg sync.WaitGroup
 
 	// for each configured service
 	for _, service := range config {
@@ -135,11 +169,19 @@ func Run(config Config, opts Opts, logr *log.Logger) {
 			dests = append(dests, dest)
 		}
 
-		go StartService(poll_interval, source, dests)
+		wg.Add(1)
+		go StartService(ServiceStart{
+			logr:     logr,
+			wg:       &wg,
+			interval: poll_interval,
+			source:   source,
+			dests:    dests,
+			once:     opts.Once,
+		})
 
-		// TEMP
-		time.Sleep(time.Minute)
 	}
+	// wait for all services to stop
+	wg.Wait()
 }
 
 func convertToStringSlice(in []interface{}) []string {
