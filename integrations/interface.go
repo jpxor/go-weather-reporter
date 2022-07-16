@@ -14,11 +14,26 @@
 //     You should have received a copy of the GNU General Public License
 //     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package database
+package integrations
 
-import "github.com/jpxor/go-weather-reporter/integrations/weather"
+import "time"
 
-type Interface interface {
-	Report(batch []*weather.Weather) error
-	Close()
+type Field struct {
+	Value interface{}
+	Unit  string
+}
+
+type Data struct {
+	Time   time.Time
+	Fields map[string]Field
+}
+
+type SourceInterface interface {
+	Init(config map[string]interface{}) error
+	Query() (Data, error)
+}
+
+type DestinationInterface interface {
+	Init(fields []string, config map[string]interface{}) error
+	Report(Data) error
 }

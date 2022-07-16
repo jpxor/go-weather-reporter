@@ -17,22 +17,114 @@
 package internal
 
 import (
-	"time"
+	"log"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
 
-	"github.com/jpxor/go-weather-reporter/integrations/database"
-	"github.com/jpxor/go-weather-reporter/integrations/weather"
+	"gopkg.in/yaml.v2"
 )
 
-type Config struct {
-	Start          bool
-	QueryInterval  time.Duration
-	ReportInterval time.Duration
-	Database       struct {
-		HostPath string
-		Username string
-		Password string
-		Token    string
+type ConfigParser struct {
+	logr *log.Logger
+}
+
+type Opts struct {
+	ConfigDir string
+	Once      bool
+}
+
+type Config []ServiceConfig
+
+type ServiceConfig struct {
+	Name         string
+	ConfPath     string
+	Source       map[string]interface{}
+	Destinations []map[string]interface{}
+}
+
+func NewConfigParser(logr *log.Logger) *ConfigParser {
+	return &ConfigParser{logr: logr}
+}
+
+func (c *ConfigParser) ParseConfigFiles(dir string) (Config, error) {
+	var conf Config
+
+	dirents, err := os.ReadDir(dir)
+	if err != nil {
+		return conf, err
 	}
-	WeatherService weather.Interface
-	DataService    database.Interface
+
+	for _, dirent := range dirents {
+		if !dirent.IsDir() {
+
+			path := filepath.Join(dir, dirent.Name())
+			switch filepath.Ext(dirent.Name()) {
+
+			case ".yaml":
+				c.logr.Println(dirent.Name())
+				content, err := os.ReadFile(path)
+				if err != nil {
+					return conf, err
+				}
+				content = EnvVarSubstitution(content)
+				c, err := ParseYamlConfig(content)
+				if err != nil {
+					return conf, err
+				}
+				for _, service := range c {
+					service.ConfPath = path
+				}
+				conf = append(conf, c...)
+
+			default:
+				c.logr.Println("info: skipping file", dirent.Name())
+			}
+		}
+	}
+	return conf, nil
+}
+
+func ParseYamlConfig(src []byte) (Config, error) {
+	var conf Config
+	err := yaml.UnmarshalStrict([]byte(src), &conf)
+	if err != nil {
+		return conf, err
+	}
+	return conf, nil
+}
+
+func EnvVarSubstitution(in []byte) []byte {
+	rexp, err := regexp.Compile(`\${\w*}`)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	lines := strings.Split(string(in), "\n")
+	for i, line := range lines {
+
+		// # ignored empty and commented lines
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		matches := rexp.FindAllString(line, -1)
+		for _, match := range matches {
+
+			// special value, must not be replaced
+			if match == "${field}" {
+				continue
+			}
+			match = strings.TrimPrefix(match, "${")
+			match = strings.TrimSuffix(match, "}")
+
+			sub := os.Getenv(match)
+			if sub == "" {
+				log.Fatalln("error: missing environment variable: ", match)
+			}
+			line = strings.ReplaceAll(line, match, sub)
+		}
+		lines[i] = line
+	}
+	return []byte(strings.Join(lines, "\n"))
 }

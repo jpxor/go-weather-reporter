@@ -19,62 +19,31 @@ package main
 import (
 	"flag"
 	"log"
-	"time"
 
 	"github.com/jpxor/go-weather-reporter/internal"
-	"github.com/jpxor/ssconfig"
 )
 
-var DEFAULT_INTERVAL = time.Minute * 10
-
 func main() {
-	logr := log.New(log.Writer(), "go-weather-reporter: ", log.LstdFlags|log.Lmsgprefix)
-	config := parseArgs(logr)
-	internal.Run(config, logr)
+	logr := log.New(log.Writer(), "go-data-logger: ", log.LstdFlags|log.Lmsgprefix)
+	config, opts := parseArgs(logr)
+	internal.Run(config, opts, logr)
 }
 
-func parseArgs(logr *log.Logger) internal.Config {
-	logr.Println("parsing inputs")
+func parseArgs(logr *log.Logger) (internal.Config, internal.Opts) {
+	opts := internal.Opts{}
 
-	opts := struct {
-		ConfigPath     string
-		QueryInterval  int
-		ReportInterval int
-		Start          bool
-	}{}
-
-	flag.StringVar(&opts.ConfigPath, "config", "", "Set path to a configuration file")
-	flag.BoolVar(&opts.Start, "start", false, "Tells weather-reporter to start, continues until stopped")
-
-	// the following flags overwrite values set in the config file,
-	// the default value must be invalid so we know when to NOT overwrite the config
-	// the real default values are set above
-	flag.IntVar(&opts.QueryInterval, "interval", 0, "Query interval in minutes")
-	flag.IntVar(&opts.ReportInterval, "report_interval", 0, "Set report interval in minutes if it should differ from the query interval")
-
+	flag.StringVar(&opts.ConfigDir, "cdir", "./config/", "Set path to a directory containing config files")
+	flag.BoolVar(&opts.Once, "once", false, "Execute each query once, then exit")
 	flag.Parse()
 
-	config := internal.Config{}
-	if opts.ConfigPath != "" {
-		ssconfig.Set{FilePath: opts.ConfigPath}.Load(&config)
+	logr.Println("parsing config files")
+	parser := internal.NewConfigParser(logr)
+	config, err := parser.ParseConfigFiles(opts.ConfigDir)
+
+	if err != nil {
+		logr.Println(err)
+		logr.Fatalln("faild to parse config files")
 	}
 
-	// check for valid interval,
-	// then check if default value is needed
-	if opts.QueryInterval > 0 {
-		config.QueryInterval = time.Minute * time.Duration(opts.QueryInterval)
-	} else if config.QueryInterval == 0 {
-		config.QueryInterval = DEFAULT_INTERVAL
-	}
-
-	// check for valid interval,
-	// then check if default value is needed
-	if opts.ReportInterval > 0 {
-		config.ReportInterval = time.Minute * time.Duration(opts.ReportInterval)
-	} else if config.ReportInterval == 0 {
-		config.ReportInterval = config.QueryInterval
-	}
-
-	config.Start = opts.Start
-	return config
+	return config, opts
 }

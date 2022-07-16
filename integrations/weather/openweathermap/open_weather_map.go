@@ -29,9 +29,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jpxor/go-weather-reporter/integrations"
 	. "github.com/jpxor/go-weather-reporter/integrations/weather"
 	. "github.com/jpxor/go-weather-reporter/pkg/httphelper"
 )
+
+var Name = "openweathermap"
 
 type CachedResult struct {
 	Result       *OpenWeatherResponse
@@ -44,67 +47,106 @@ type OpenWeatherService struct {
 	logr            *log.Logger
 	cache           map[string]CachedResult
 	previousRequest time.Time
-	ApiKey          string
-	Language        string
+	apikey          string
+	lang            string
+	units           string
+	lat             float64
+	lon             float64
 }
 
-func NewWeatherService(apiKey, lang string, logr *log.Logger) *OpenWeatherService {
-	client := SimpleClient(10 * time.Second)
-	return &OpenWeatherService{
-		client:          client,
-		logr:            logr,
-		cache:           make(map[string]CachedResult),
-		previousRequest: time.Unix(0, 0),
-		ApiKey:          apiKey,
-		Language:        lang,
+func (w *OpenWeatherService) Init(args map[string]interface{}) error {
+	var ok bool
+
+	w.logr = log.New(log.Writer(), "open_weather_map source: ", log.LstdFlags|log.Lmsgprefix)
+
+	w.apikey, ok = args["apikey"].(string)
+	if !ok {
+		w.logr.Println("missing required 'apikey'")
+		return fmt.Errorf("configuration missing required field")
 	}
+
+	w.lat, ok = args["latitude"].(float64)
+	if !ok {
+		w.logr.Println("missing required 'latitude'")
+		return fmt.Errorf("configuration missing required field")
+	}
+
+	w.lon, ok = args["longitude"].(float64)
+	if !ok {
+		w.logr.Println("missing required 'longitude'")
+		return fmt.Errorf("configuration missing required field")
+	}
+
+	w.lang, ok = args["language"].(string)
+	if !ok {
+		w.logr.Println("missing optional 'language', using default: 'en'")
+		w.lang = "en"
+	}
+
+	w.units, ok = args["units"].(string)
+	if !ok {
+		w.logr.Println("missing optional 'units', using default: 'metric'")
+		w.units = "metric"
+	}
+
+	w.cache = make(map[string]CachedResult)
+	w.client = SimpleClient(10 * time.Second)
+
+	w.logr.Println("Initialized!")
+	return nil
 }
 
-func (w *OpenWeatherService) Query(loc Location) (*Weather, error) {
+func (w *OpenWeatherService) Query() (integrations.Data, error) {
 	w.logr.Println("querying OpenWeather")
 
-	current, err := w.currentWeatherQuery(w.client, loc.Latitude, loc.Longitude)
+	current, err := w.currentWeatherQuery(w.client, w.lat, w.lon)
 	if err != nil {
 		w.logr.Println("openweather.currentWeatherQuery failed")
-		return nil, err
+		return integrations.Data{}, err
 	}
 
-	ret := Weather{
-		Time: time.Unix(int64(current.Time), 0),
-		Location: Location{
-			Latitude:  current.Location.Latitude,
-			Longitude: current.Location.Longitude,
-		},
-		Measurements: []Measurement{
-			{
-				Name:  Temperature,
+	return integrations.Data{
+		Time: time.Unix(current.Time, 0),
+
+		Fields: map[string]integrations.Field{
+			Temperature: {
 				Value: current.Main.Temperature,
 				Unit:  Celcius,
-			}, {
-				Name:  "FeelsLike",
+			},
+			"FeelsLike": {
 				Value: current.Main.FeelsLike,
 				Unit:  Celcius,
-			}, {
-				Name:  RelHumidity,
+			},
+			RelHumidity: {
 				Value: current.Main.RelHumidity,
 				Unit:  Percent,
-			}, {
-				Name:  Pressure,
+			},
+			Pressure: {
 				Value: current.Main.Pressure,
 				Unit:  HectoPascal,
-			}, {
-				Name:  WindSpeed,
+			},
+			WindSpeed: {
 				Value: current.Wind.Speed,
 				Unit:  MetersPerSecond,
-			}, {
-				Name:  CloudCover,
+			},
+			CloudCover: {
 				Value: current.Clouds.All,
 				Unit:  Percent,
 			},
+			"weather": {
+				Value: current.Weather[0].Main,
+				Unit:  Text,
+			},
+			"sunrise": {
+				Value: time.Unix(current.Sys.Sunrise, 0),
+				Unit:  "Time",
+			},
+			"sunset": {
+				Value: time.Unix(current.Sys.Sunset, 0),
+				Unit:  "Time",
+			},
 		},
-	}
-
-	return &ret, nil
+	}, nil
 }
 
 func (w *OpenWeatherService) currentWeatherQuery(client *http.Client, lat, lon float64) (*OpenWeatherResponse, error) {
@@ -130,7 +172,7 @@ func (w *OpenWeatherService) currentWeatherQuery(client *http.Client, lat, lon f
 	q.Add("lon", fmt.Sprintf("%.4f", lon))
 	q.Add("units", "metric")
 	q.Add("lang", "en")
-	q.Add("appid", w.ApiKey)
+	q.Add("appid", w.apikey)
 	req.URL.RawQuery = q.Encode()
 
 	req.Header.Add("Accept", "application/json")
@@ -280,6 +322,7 @@ func (w *OpenWeatherService) selfThrottle() {
 	// between requests
 	sinceLastReq := time.Now().Sub(w.previousRequest)
 	if sinceLastReq < 1*time.Second {
+		fmt.Println("self-throttled, sleeping for", 1*time.Second-sinceLastReq)
 		time.Sleep(1*time.Second - sinceLastReq)
 	}
 }
@@ -313,13 +356,13 @@ type OpenWeatherResponse struct {
 	Clouds struct {
 		All float32 `json:"all"`
 	} `json:"clouds"`
-	Time int `json:"dt"`
+	Time int64 `json:"dt"`
 	Sys  struct {
 		Type    int    `json:"type"`
 		ID      int    `json:"id"`
 		Country string `json:"country"`
-		Sunrise int    `json:"sunrise"`
-		Sunset  int    `json:"sunset"`
+		Sunrise int64  `json:"sunrise"`
+		Sunset  int64  `json:"sunset"`
 	} `json:"sys"`
 	Timezone int    `json:"timezone"`
 	ID       int    `json:"id"`
