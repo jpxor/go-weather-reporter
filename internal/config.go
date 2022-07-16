@@ -115,10 +115,8 @@ func EnvVarSubstitution(in []byte) []byte {
 			if match == "${field}" {
 				continue
 			}
-			match = strings.TrimPrefix(match, "${")
-			match = strings.TrimSuffix(match, "}")
-
-			sub := os.Getenv(match)
+			envKey := strings.TrimSuffix(strings.TrimPrefix(match, "${"), "}")
+			sub := os.Getenv(envKey)
 			if sub == "" {
 				log.Fatalln("error: missing environment variable: ", match)
 			}
