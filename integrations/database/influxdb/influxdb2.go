@@ -68,11 +68,12 @@ func (r *Influxdb2Reporter) Init(fields []string, config map[string]interface{})
 		r.logr.Println("missing required 'measurement'")
 		return fmt.Errorf("configuration missing required field")
 	}
-	tags, ok := config["tags"].(map[string]string)
+	tagsI, ok := config["tags"].(map[interface{}]interface{})
 	if !ok {
 		r.logr.Println("missing 'tags', leaving blank")
-		tags = make(map[string]string)
+		tagsI = nil
 	}
+	tags := convertToTags(tagsI)
 
 	r.client = influxdb2.NewClient(host, token)
 	r.org = org
@@ -83,6 +84,20 @@ func (r *Influxdb2Reporter) Init(fields []string, config map[string]interface{})
 
 	r.logr.Println("Initialized!")
 	return nil
+}
+
+func convertToTags(in map[interface{}]interface{}) map[string]string {
+	tags := make(map[string]string)
+	for k, v := range in {
+		key, ok := k.(string)
+		val, ov := v.(string)
+		if ok && ov {
+			tags[key] = val
+		} else {
+			fmt.Println("failed to parse tags:", k, v)
+		}
+	}
+	return tags
 }
 
 func (r *Influxdb2Reporter) Close() {
